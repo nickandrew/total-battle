@@ -18,6 +18,11 @@ class Squad:
     qty: int
     strength_bonus: float
     health_bonus: float
+    double_damage: float = 0
+
+    def aug_strength(self):
+        """Calculate strength including bonus."""
+        return float(self.qty * self.troop.strength * (1 + self.strength_bonus / 100.0))
 
     def unit_health(self):
         """Calculate per-unit health, including bonuses."""
@@ -49,7 +54,7 @@ class Squad:
 
     def choose_attack(self, army):
         """Choose which squad in an enemy army to attack."""
-        print(f'--- Choosing which squad {self.troop.name} will attack')
+        print(f'--- Choosing which squad {self.troop.name} (strength {self.aug_strength()}) will attack')
         md = 0
         attack_candidates = list()
 
