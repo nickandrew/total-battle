@@ -123,6 +123,7 @@ werewolf = Troop('Werewolf', 360, 1080, set(['melee', 'beast', 'cursed']), {'mou
 catapult_4 = Troop('Catapult IV', 1460, 8750, set(['siege', 'engineer', 'human']), {'fortification': 219})
 spearman_4 = Troop('Spearman IV', 290, 870, set(['melee', 'guardsman', 'human']), {'beast': 270, 'mounted': 132})
 spearman_3 = Troop('Spearman III', 160, 480, set(['melee', 'guardsman', 'human']), {'beast': 180, 'mounted': 88})
+swordsman_3 = Troop('Swordsman III', 160, 480, set(['melee', 'specialist', 'human']), {'beast': 90, 'human': 105, 'mounted': 44})
 ettin = Troop('Ettin', 48000, 144000, set(['melee', 'giant']), {'fortification': 243, 'mounted': 334})
 fearsome_manticore = Troop('Fearsome Manticore', 46000, 138000, set(['flying', 'beast']), {'flying': 253, 'giant': 324})
 ice_phoenix = Troop('Ice Phoenix', 17000, 51000, set(['flying', 'elemental']), {'dragon': 162, 'flying': 223})
@@ -136,12 +137,13 @@ cursed_citadel_l20 = Army([
 ])
 
 my_army = Army([
-    Squad(catapult_4, 1400, 423.5, 385.5),
-    Squad(spearman_4, 7500, 534.5, 567),
-    Squad(spearman_3, 15595, 534.5, 567),
-    Squad(ettin, 33, 321.5, 222.5),
-    Squad(fearsome_manticore, 43, 281, 226.5),
-    Squad(ice_phoenix, 89, 277.5, 226.5),
+    Squad(catapult_4, 1400, 423.5, 385.5, 7.3),
+    Squad(spearman_4, 7500, 534.5, 567, 8.9),
+    Squad(spearman_3, 15595, 534.5, 567, 8.9),
+    Squad(swordsman_3, 100, 258.5, 202),
+    Squad(ettin, 33, 321.5, 222.5, 3),
+    Squad(fearsome_manticore, 43, 281, 226.5, 3),
+    Squad(ice_phoenix, 89, 277.5, 226.5, 3),
 ])
 
 def main():
