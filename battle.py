@@ -225,6 +225,14 @@ def main():
     enemy_allowed.remove(strongest.troop.name)
     print('')
 
+    # Round 11
+    strongest = my_army.choose_strongest(myarmy_allowed)
+    opponent, damage, kills = strongest.choose_attack(enemy)
+    print(f'{strongest.troop.name} attacks {opponent.troop.name} damage {damage} kills {kills}')
+    opponent.qty -= kills
+    myarmy_allowed.remove(strongest.troop.name)
+    print('')
+
 
 if __name__ == '__main__':
     main()
