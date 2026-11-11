@@ -230,22 +230,28 @@ def fight_all(my_army, enemy):
     army_2_allowed = None
 
     while my_army.alive_squads() > 0 and enemy.alive_squads() > 0:
-        if not army_1_allowed and not army_2_allowed:
-            # Refresh once all squads have attacked
-            print(f'Refreshing armies')
-            army_1_allowed = set(x.troop.name for x in army_1.squads if x.qty > 0)
-            army_2_allowed = set(x.troop.name for x in army_2.squads if x.qty > 0)
-            print('{army_1_allowed=}')
-            print('{army_2_allowed=}')
-        attacker, attacked, damage, kills = fight_round(army_1, army_2, army_1_allowed)
-        if attacker is None:
+        if army_1_allowed:
+            attacker, attacked, damage, kills = fight_round(army_1, army_2, army_1_allowed)
+        elif army_2_allowed:
             print('Switch and continue')
             army_1, army_2 = army_2, army_1
             army_1_allowed, army_2_allowed = army_2_allowed, army_1_allowed
             continue
-        result = (attacker.troop.name, attacked.troop.name, damage, kills)
-        # print(f'{result[0]} attacks {result[1]} damage {result[2]} kills {result[3]}')
+        else:
+            # Refresh armies
+            army_1_allowed = set(x.troop.name for x in army_1.squads if x.qty > 0)
+            army_2_allowed = set(x.troop.name for x in army_2.squads if x.qty > 0)
+            continue
+
+        if attacker is None:
+            # Could not find anybody to attack
+            army_1_allowed = set()
+        else:
+            result = (attacker.troop.name, attacked.troop.name, damage, kills)
+            # print(f'{result[0]} attacks {result[1]} damage {result[2]} kills {result[3]}')
 
         # Swap armies for next round
         army_1, army_2 = army_2, army_1
         army_1_allowed, army_2_allowed = army_2_allowed, army_1_allowed
+
+    return army_1, army_2
