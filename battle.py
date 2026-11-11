@@ -5,7 +5,6 @@ from dataclasses import dataclass
 
 import tb
 
-
 my_army = tb.Army([
     tb.Squad(tb.catapult_4, 1400, 423.5, 385.5, 7.3),
     tb.Squad(tb.spearman_4, 7500, 534.5, 567, 8.9),
@@ -18,91 +17,12 @@ my_army = tb.Army([
 
 def main():
     enemy = tb.cursed_citadel_l20.new()
-    enemy_allowed = set(x.troop.name for x in enemy.squads)
-    myarmy_allowed = set(x.troop.name for x in my_army.squads)
 
-    # Round 1 - Siege (not included here)
-
-    # Round 2
-    strongest = enemy.choose_strongest(enemy_allowed)
-    opponent, damage, kills = strongest.choose_attack(my_army)
-    print(f'{strongest.troop.name} attacks {opponent.troop.name} damage {damage} kills {kills}')
-    opponent.qty -= kills
-    enemy_allowed.remove(strongest.troop.name)
+    print('\n'.join(my_army.report()))
     print('')
+    print('\n'.join(enemy.report()))
 
-    # Round 3
-    strongest = my_army.choose_strongest(myarmy_allowed)
-    opponent, damage, kills = strongest.choose_attack(enemy)
-    print(f'{strongest.troop.name} attacks {opponent.troop.name} damage {damage} kills {kills}')
-    opponent.qty -= kills
-    myarmy_allowed.remove(strongest.troop.name)
-    print('')
-
-    # Round 4
-    strongest = enemy.choose_strongest(enemy_allowed)
-    opponent, damage, kills = strongest.choose_attack(my_army)
-    print(f'{strongest.troop.name} attacks {opponent.troop.name} damage {damage} kills {kills}')
-    opponent.qty -= kills
-    enemy_allowed.remove(strongest.troop.name)
-    print('')
-
-    # Round 5
-    strongest = my_army.choose_strongest(myarmy_allowed)
-    opponent, damage, kills = strongest.choose_attack(enemy)
-    print(f'{strongest.troop.name} attacks {opponent.troop.name} damage {damage} kills {kills}')
-    opponent.qty -= kills
-    myarmy_allowed.remove(strongest.troop.name)
-    print('')
-
-    # Round 6
-    strongest = enemy.choose_strongest(enemy_allowed)
-    opponent, damage, kills = strongest.choose_attack(my_army)
-    print(f'{strongest.troop.name} attacks {opponent.troop.name} damage {damage} kills {kills}')
-    opponent.qty -= kills
-    enemy_allowed.remove(strongest.troop.name)
-    print('')
-
-    # Round 7
-    strongest = my_army.choose_strongest(myarmy_allowed)
-    opponent, damage, kills = strongest.choose_attack(enemy)
-    print(f'{strongest.troop.name} attacks {opponent.troop.name} damage {damage} kills {kills}')
-    opponent.qty -= kills
-    myarmy_allowed.remove(strongest.troop.name)
-    print('')
-
-    # Round 8
-    strongest = enemy.choose_strongest(enemy_allowed)
-    opponent, damage, kills = strongest.choose_attack(my_army)
-    print(f'{strongest.troop.name} attacks {opponent.troop.name} damage {damage} kills {kills}')
-    opponent.qty -= kills
-    enemy_allowed.remove(strongest.troop.name)
-    print('')
-
-    # Round 9
-    strongest = my_army.choose_strongest(myarmy_allowed)
-    opponent, damage, kills = strongest.choose_attack(enemy)
-    print(f'{strongest.troop.name} attacks {opponent.troop.name} damage {damage} kills {kills}')
-    opponent.qty -= kills
-    myarmy_allowed.remove(strongest.troop.name)
-    print('')
-
-    # Round 10
-    strongest = enemy.choose_strongest(enemy_allowed)
-    opponent, damage, kills = strongest.choose_attack(my_army)
-    print(f'{strongest.troop.name} attacks {opponent.troop.name} damage {damage} kills {kills}')
-    opponent.qty -= kills
-    enemy_allowed.remove(strongest.troop.name)
-    print('')
-
-    # Round 11
-    strongest = my_army.choose_strongest(myarmy_allowed)
-    opponent, damage, kills = strongest.choose_attack(enemy)
-    print(f'{strongest.troop.name} attacks {opponent.troop.name} damage {damage} kills {kills}')
-    opponent.qty -= kills
-    myarmy_allowed.remove(strongest.troop.name)
-    print('')
-
+    tb.fight_all(my_army, enemy)
 
 if __name__ == '__main__':
     main()
