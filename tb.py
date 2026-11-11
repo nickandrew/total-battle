@@ -59,9 +59,8 @@ class Squad:
                     augmented_strength = a_s
 
         tot_strength = float(base_strength * augmented_strength)
-        print(f'    {self.troop.name} against {other_squad.troop.name} s {base_strength} as {augmented_strength} tot {tot_strength}')
         tot_health = other_squad.total_health()
-        print(f'    Total health {tot_health}')
+        print(f'    {self.troop.name:20} against {other_squad.troop.name:20} str {base_strength} aug {augmented_strength:4.2f} tot {tot_strength:10.1f} health {tot_health:10.1f}')
         return min(tot_strength, tot_health)
 
     def choose_attack(self, army):
@@ -71,6 +70,10 @@ class Squad:
         attack_candidates = list()
 
         for squad in army.squads:
+            if squad.qty == 0:
+                # Can't attack a squad that's already completely dead
+                continue
+
             smd = self.damage_against(squad)
             print(f'    Damage against {squad.troop.name} will be {smd}')
             if smd > md:
@@ -85,14 +88,15 @@ class Squad:
         to_attack = attack_candidates[0]
 
         if len(attack_candidates) > 1:
-            print(f'    -- Tie breaker')
-            max_size = 0
+            tot_s = self.total_strength()
+            print(f'    -- Tie breaker - total_strength {tot_s}')
+            max_thing = 0
             for squad in attack_candidates:
+                tot_h = squad.total_health()
                 could_kill = int(self.total_strength() / squad.unit_health())
-                print(f'        -- tot_strength {self.total_strength()} enemy tot_health {squad.total_health()}')
-                print(f'        -- Considering {squad.troop.name} size {squad.qty} health {squad.total_health()} could kill {could_kill}')
-                if squad.qty > max_size:
-                    max_size = squad.qty
+                print(f'        -- Considering {squad.troop.name:20} size {squad.qty:10} health {squad.total_health():10.2f} could kill {could_kill:10}')
+                if could_kill > max_thing:
+                    max_thing = could_kill
                     to_attack = squad
 
             print(f'    -- Chose {to_attack.troop.name} because {to_attack.qty}')
@@ -149,3 +153,11 @@ cursed_citadel_l20 = Army([
     Squad(bull_rider, 54, 0, 0),
     Squad(cursed_dragon, 10, 0, 0),
 ])
+
+def fight_round(army, enemy, army_allowed):
+    strongest = army.choose_strongest(army_allowed)
+    opponent, damage, kills = strongest.choose_attack(enemy)
+    print(f'{strongest.troop.name} attacks {opponent.troop.name} damage {damage} kills {kills}')
+    opponent.qty -= kills
+    army_allowed.remove(strongest.troop.name)
+    return strongest, opponent, damage, kills
