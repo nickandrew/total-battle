@@ -72,47 +72,6 @@ class Squad:
         # return min(tot_strength, tot_health)
         return tot_strength
 
-    def tie_breaker_1(self, attack_candidates):
-        """Choose who gets attacked. It's mostly wrong.
-
-        Pick total health.
-        """
-
-        tot_s = self.total_strength()
-        max_thing = 0
-        for squad in attack_candidates:
-            tot_h = squad.total_health()
-            could_kill = int(self.total_strength() / squad.unit_health())
-            criteria = tot_h # Or could_kill?
-            if criteria > max_thing:
-                max_thing = criteria
-                to_attack = squad
-
-        return to_attack
-
-    def tie_breaker_2(self, attack_candidates):
-        """Choose who gets attacked.
-
-        Do this by implementing hardcoded rules.
-        """
-
-        if self.troop.name not in attack_weights:
-            raise ValueError(f'No attack weights for {self.troop.name}')
-
-        aw = attack_weights[self.troop.name]
-        max_squad = None
-        max_weight = 0
-
-        for squad in attack_candidates:
-            if squad.troop.name not in aw:
-                raise ValueError(f'No attack weights for {self.troop.name} against {squad.troop.name}')
-            weight = aw[squad.troop.name]
-            if weight > max_weight:
-                max_weight = weight
-                max_squad = squad
-
-        return max_squad
-
     def tie_breaker_3(self, attack_candidates):
         """Choose who gets attacked. It's mostly wrong.
 
@@ -264,45 +223,6 @@ cursed_citadel_l20 = Army([
     Squad(bull_rider, 54, 0, 0),
     Squad(cursed_dragon, 10, 0, 0),
 ])
-
-attack_weights = {
-    'Bull Rider': {
-        'Catapult IV': 4,
-        'Spearman IV': 8,
-        'Spearman III': 12,
-        'Ettin': 0,
-        'Fearsome Manticore': 0,
-        'Ice Phoenix': 0,
-        'Spearman II': 0,
-        'Spearman I': 0,
-    },
-    'Cursed Dragon': {
-        'Catapult IV': 16,
-        'Spearman IV': 8,
-    },
-    'Death Rider': {
-        'Spearman IV': 8,
-        'Spearman III': 12,
-        'Catapult IV': 0,
-        'Ettin': 0,
-        'Fearsome Manticore': 0,
-        'Ice Phoenix': 0,
-        'Spearman II': 0,
-        'Spearman I': 0,
-    },
-    'Giant Zombie': {
-        'Catapult IV': 16,
-        'Spearman IV': 8,
-    },
-    'Werewolf': {
-        'Spearman IV': 32,
-        'Spearman III': 16,
-        'Catapult IV': 8,
-        'Ettin': 0,
-        'Fearsome Manticore': 0,
-        'Ice Phoenix': 0,
-    },
-}
 
 def fight_round(army, enemy, army_allowed):
     if not army_allowed:
