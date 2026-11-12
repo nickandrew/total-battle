@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Total Battle Fight simulator."""
+"""Test a battle against an L20 Cursed Citadel."""
 
 from dataclasses import dataclass
 import unittest
@@ -36,6 +36,12 @@ class Fight(unittest.TestCase):
         enemy_allowed = set(x.troop.name for x in enemy.squads)
         myarmy_allowed = set(x.troop.name for x in my_army.squads)
 
+        # Print army make-up
+        print('My army:')
+        print('\n'.join(my_army.report()), '\n')
+        print('Citadel army:')
+        print('\n'.join(enemy.report()), '\n')
+
         # Enemy goes first
         army_1 = enemy
         army_1_allowed = enemy_allowed
@@ -49,7 +55,7 @@ class Fight(unittest.TestCase):
                 if result == expected:
                     print(f'Pass! {result}')
                 else:
-                    print(f'** Fail! {result}')
+                    print(f'** Fail! {result} expected {expected}')
 
                 self.assertEqual(result, expected)
 
