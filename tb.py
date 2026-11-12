@@ -19,6 +19,8 @@ class Squad:
     strength_bonus: float
     health_bonus: float
     double_damage: float = 0
+    training_cost: int = 0     # Silver cost
+    killed: int = 0
 
     def __deepcopy__(self, memo):
         new = self.__class__(
@@ -67,7 +69,71 @@ class Squad:
         tot_health = other_squad.total_health()
         print(f'    {self.troop.name:20} against {other_squad.troop.name:20} qty {other_squad.qty:8} str {base_strength} aug {augmented_strength:4.2f} tot {tot_strength:10.1f} health {tot_health:10.1f}')
         # The amount of damage we can do is limited by the total health of the enemy
-        return min(tot_strength, tot_health)
+        # return min(tot_strength, tot_health)
+        return tot_strength
+
+    def tie_breaker_1(self, attack_candidates):
+        """Choose who gets attacked. It's mostly wrong.
+
+        Pick total health.
+        """
+
+        tot_s = self.total_strength()
+        max_thing = 0
+        for squad in attack_candidates:
+            tot_h = squad.total_health()
+            could_kill = int(self.total_strength() / squad.unit_health())
+            criteria = tot_h # Or could_kill?
+            if criteria > max_thing:
+                max_thing = criteria
+                to_attack = squad
+
+        return to_attack
+
+    def tie_breaker_2(self, attack_candidates):
+        """Choose who gets attacked.
+
+        Do this by implementing hardcoded rules.
+        """
+
+        if self.troop.name not in attack_weights:
+            raise ValueError(f'No attack weights for {self.troop.name}')
+
+        aw = attack_weights[self.troop.name]
+        max_squad = None
+        max_weight = 0
+
+        for squad in attack_candidates:
+            if squad.troop.name not in aw:
+                raise ValueError(f'No attack weights for {self.troop.name} against {squad.troop.name}')
+            weight = aw[squad.troop.name]
+            if weight > max_weight:
+                max_weight = weight
+                max_squad = squad
+
+        return max_squad
+
+    def tie_breaker_3(self, attack_candidates):
+        """Choose who gets attacked. It's mostly wrong.
+
+        Pick the one that can retaliate hardest
+        """
+
+        tot_s = self.total_strength()
+        max_thing = 0
+        for squad in attack_candidates:
+            tot_h = squad.total_health()
+            could_kill = int(self.total_strength() / squad.unit_health())
+            damage = squad.damage_against(self)
+            killed_damage = damage * could_kill / squad.qty
+            print(f'      --- {squad.troop.name} qty {could_kill:6} could do {damage:10.1f} -> {killed_damage:10.1f}')
+            criteria = killed_damage
+            print(f'      --- {squad.troop.name:20} score {criteria:10.1f}')
+            if criteria > max_thing:
+                max_thing = criteria
+                to_attack = squad
+
+        return to_attack
 
     def choose_attack(self, army):
         """Choose which squad in an enemy army to attack."""
@@ -80,7 +146,7 @@ class Squad:
                 # Can't attack a squad that's already completely dead
                 continue
 
-            smd = self.damage_against(squad)
+            smd = min(squad.total_health(), self.damage_against(squad))
             print(f'    Damage against {squad.troop.name} will be {smd}')
             if smd > md:
                 md = smd
@@ -96,21 +162,20 @@ class Squad:
         if len(attack_candidates) > 1:
             tot_s = self.total_strength()
             print(f'    -- Tie breaker - total_strength {tot_s}')
-            max_thing = 0
             for squad in attack_candidates:
                 tot_h = squad.total_health()
                 could_kill = int(self.total_strength() / squad.unit_health())
                 print(f'        -- Considering {squad.troop.name:20} qty {squad.qty:10} unit_s {squad.unit_strength():8.1f} health {squad.total_health():10.1f} could kill {could_kill:10}')
-                if could_kill > max_thing:
-                    max_thing = could_kill
-                    to_attack = squad
 
-            print(f'    -- Chose {to_attack.troop.name} because {to_attack.qty}')
+            to_attack = self.tie_breaker_3(attack_candidates)
 
-        # smd = self.damage_against(to_attack)
+            print(f'        -- Chose {to_attack.troop.name}')
+
         uh = to_attack.unit_health()
         kills = int(md / uh)
-        print(f'   Damage: {md} against {to_attack.troop.name} kills {kills}')
+        print(f'   Damage: {md} against {to_attack.troop.name} kills {kills} {md / uh}')
+        if kills > to_attack.qty:
+            raise ValueError(f'Cannot kill {kills} which is more than {to_attack.qty}')
         return to_attack, md, kills
 
 @dataclass
@@ -152,11 +217,12 @@ class Army:
                 'tot_s': squad.total_strength(),
                 'unit_s': squad.unit_strength(),
                 'tot_h': squad.total_health(),
+                'killed': squad.killed,
             })
 
         ret = []
         for d in sorted(ls, key=lambda x: -x['tot_h']):
-            ret.append(f"{d['name']:20} qty {d['qty']:8} us {d['unit_s']:8.1f} s {d['tot_s']:10.1f} h {d['tot_h']:10.1f}")
+            ret.append(f"{d['name']:20} qty {d['qty']:8} us {d['unit_s']:8.1f} s {d['tot_s']:10.1f} h {d['tot_h']:10.1f} killed {d['killed']}")
         return ret
 
     def alive_squads(self) -> int:
@@ -199,6 +265,45 @@ cursed_citadel_l20 = Army([
     Squad(cursed_dragon, 10, 0, 0),
 ])
 
+attack_weights = {
+    'Bull Rider': {
+        'Catapult IV': 4,
+        'Spearman IV': 8,
+        'Spearman III': 12,
+        'Ettin': 0,
+        'Fearsome Manticore': 0,
+        'Ice Phoenix': 0,
+        'Spearman II': 0,
+        'Spearman I': 0,
+    },
+    'Cursed Dragon': {
+        'Catapult IV': 16,
+        'Spearman IV': 8,
+    },
+    'Death Rider': {
+        'Spearman IV': 8,
+        'Spearman III': 12,
+        'Catapult IV': 0,
+        'Ettin': 0,
+        'Fearsome Manticore': 0,
+        'Ice Phoenix': 0,
+        'Spearman II': 0,
+        'Spearman I': 0,
+    },
+    'Giant Zombie': {
+        'Catapult IV': 16,
+        'Spearman IV': 8,
+    },
+    'Werewolf': {
+        'Spearman IV': 32,
+        'Spearman III': 16,
+        'Catapult IV': 8,
+        'Ettin': 0,
+        'Fearsome Manticore': 0,
+        'Ice Phoenix': 0,
+    },
+}
+
 def fight_round(army, enemy, army_allowed):
     if not army_allowed:
         # We've run out of attacking forces this phase
@@ -210,8 +315,9 @@ def fight_round(army, enemy, army_allowed):
         return None, None, None, None
 
     opponent, damage, kills = strongest.choose_attack(enemy)
-    print(f'{strongest.troop.name} attacks {opponent.troop.name} damage {damage} kills {kills}')
     opponent.qty -= kills
+    opponent.killed += kills
+    print(f'{strongest.troop.name} attacks {opponent.troop.name} damage {damage} kills {kills} left {opponent.qty}')
     army_allowed.remove(strongest.troop.name)
     return strongest, opponent, damage, kills
 
