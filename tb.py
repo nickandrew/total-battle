@@ -45,16 +45,40 @@ class Squad:
     def total_health(self):
         """Calculate total health, including bonuses."""
         th = self.qty * self.unit_health()
-        print(f'   Total_health: {self.qty} {self.troop.health} {self.health_bonus} {self.unit_health()} {th}')
+        # print(f'   Total_health: {self.qty} {self.troop.health} {self.health_bonus} {self.unit_health()} {th}')
         return self.qty * self.unit_health()
 
-    def total_strength(self):
-        """Calculate total strength, including bonuses."""
+    def squad_strength(self):
+        """Calculate total squad strength, including bonuses."""
         return float(self.qty * self.unit_strength())
+
+    def attack_candidates(self, army):
+        """Return a list of squads that this squad can do most damage to.
+
+        Also return maximum damage for the attack.
+        """
+
+        print(f'--- Choosing which squad {self.troop.name} (strength {self.squad_strength()}) may attack')
+        max_damage = 0
+        attack_candidates = list()
+
+        for squad in army.squads:
+            if squad.qty == 0:
+                # Can't attack a squad that's already completely dead
+                continue
+
+            smd = min(squad.total_health(), self.damage_against(squad))
+            if smd > max_damage:
+                max_damage = smd
+                attack_candidates = [squad]
+            elif smd == max_damage:
+                attack_candidates.append(squad)
+
+        return attack_candidates, max_damage
 
     def damage_against(self, other_squad) -> int:
         """Calculate how much damage this Squad can do against another."""
-        base_strength = self.total_strength()
+        base_strength = self.squad_strength()
 
         # Calculate strength bonus against various types of enemy
         # In case the enemy meets 2 or more of the bonus criteria, only the largest % applies
@@ -67,10 +91,12 @@ class Squad:
 
         tot_strength = float(base_strength * augmented_strength)
         tot_health = other_squad.total_health()
-        print(f'    {self.troop.name:20} against {other_squad.troop.name:20} qty {other_squad.qty:8} str {base_strength} aug {augmented_strength:4.2f} tot {tot_strength:10.1f} health {tot_health:10.1f}')
+        kill = int(min(tot_strength, tot_health) * other_squad.qty / tot_health)
         # The amount of damage we can do is limited by the total health of the enemy
-        # return min(tot_strength, tot_health)
-        return tot_strength
+        damage = min(tot_strength, tot_health)
+
+        print(f'    {self.troop.name:20} vs {other_squad.troop.name:20} qty {other_squad.qty:8} str {base_strength:10.1f} aug {augmented_strength:4.2f} tot_s {tot_strength:10.1f} health {tot_health:10.1f} kill {kill:8} damage {damage:10.1f}')
+        return damage
 
     def tie_breaker_3(self, attack_candidates):
         """Choose who gets attacked. It's mostly wrong.
@@ -78,11 +104,11 @@ class Squad:
         Pick the one that can retaliate hardest
         """
 
-        tot_s = self.total_strength()
+        tot_s = self.squad_strength()
         max_thing = 0
         for squad in attack_candidates:
             tot_h = squad.total_health()
-            could_kill = int(self.total_strength() / squad.unit_health())
+            could_kill = int(self.squad_strength() / squad.unit_health())
             damage = squad.damage_against(self)
             killed_damage = damage * could_kill / squad.qty
             print(f'      --- {squad.troop.name} qty {could_kill:6} could do {damage:10.1f} -> {killed_damage:10.1f}')
@@ -107,8 +133,8 @@ class Army:
             if squad.troop.name not in allowed_set:
                 print(f'    Skip {squad.troop.name:20} qty {squad.qty:8} (used)')
                 continue
-            ts = squad.total_strength()
-            print(f'         {squad.troop.name:20} qty {squad.qty:8} total strength {ts:10.1f}')
+            ts = squad.squad_strength()
+            print(f'         {squad.troop.name:20} qty {squad.qty:8} strength {ts:10.1f}')
             if ts > best_s:
                 best_s = ts
                 best = squad
@@ -116,8 +142,23 @@ class Army:
         if best is None:
             return None
 
-        print(f'    Best is {best.troop.name} qty {best.qty} total strength {best_s}')
+        print(f'    Strongest is {best.troop.name} qty {best.qty} total strength {best_s}')
         return best
+
+    def kill(self, squad_name, nkilled):
+        """Kill `nkilled` units of named squad.
+
+        nkilled can be negative, to resurrect previously-killed units.
+        """
+
+        for squad in filter(lambda x: x.troop.name == squad_name, self.squads):
+            if squad.qty < nkilled:
+                raise ValueError(f'Cannot kill {nkilled} in {squad}')
+            squad.qty -= nkilled
+            squad.killed += nkilled
+            return
+
+        raise ValueError(f'Cannot find {squad_name} in {self}')
 
     def new(self):
         return copy.deepcopy(self)
@@ -130,7 +171,7 @@ class Army:
             ls.append({
                 'name': squad.troop.name,
                 'qty': squad.qty,
-                'tot_s': squad.total_strength(),
+                'tot_s': squad.squad_strength(),
                 'unit_s': squad.unit_strength(),
                 'tot_h': squad.total_health(),
                 'killed': squad.killed,
@@ -152,39 +193,31 @@ class Army:
 
     def choose_attack(self, my_squad, army):
         """Choose which squad in an enemy army to attack."""
-        print(f'--- Choosing which squad {my_squad.troop.name} (strength {my_squad.total_strength()}) will attack')
-        md = 0
-        attack_candidates = list()
-
-        for squad in army.squads:
-            if squad.qty == 0:
-                # Can't attack a squad that's already completely dead
-                continue
-
-            smd = min(squad.total_health(), my_squad.damage_against(squad))
-            print(f'    Damage against {squad.troop.name} will be {smd}')
-            if smd > md:
-                md = smd
-                attack_candidates = [squad]
-            elif smd == md:
-                attack_candidates.append(squad)
-
-        if not attack_candidates:
-            return None
+        print(f'--- Choosing which squad {my_squad.troop.name} (strength {my_squad.squad_strength()}) will attack')
+        attack_candidates, md = my_squad.attack_candidates(army)
 
         to_attack = attack_candidates[0]
 
         if len(attack_candidates) > 1:
-            tot_s = my_squad.total_strength()
-            print(f'    -- Tie breaker - total_strength {tot_s}')
+            # See how these candidates could attack my army
+            tot_s = my_squad.squad_strength()
+            print(f'-- Tie breaker - squad_strength {tot_s}')
+            msmd = 0
             for squad in attack_candidates:
-                tot_h = squad.total_health()
-                could_kill = int(my_squad.total_strength() / squad.unit_health())
-                print(f'        -- Considering {squad.troop.name:20} qty {squad.qty:10} unit_s {squad.unit_strength():8.1f} health {squad.total_health():10.1f} could kill {could_kill:10}')
+                # How many would be killed if this squad was attacked first?
+                killed = int(my_squad.damage_against(squad) / squad.unit_health())
+                print(f'    -- Considering {squad.troop.name:20} I could kill {killed}')
+                temp_squad = copy.deepcopy(squad)
+                temp_squad.qty = killed
+                ac, smd = temp_squad.attack_candidates(self)
+                tot_h = temp_squad.total_health()
+                print(f'    -- Considering {squad.troop.name:20} qty {temp_squad.qty:10} unit_s {temp_squad.unit_strength():8.1f} health {temp_squad.total_health():10.1f} max_damage {smd:6} attacks {ac}')
 
-            to_attack = my_squad.tie_breaker_3(attack_candidates)
+                if smd > msmd:
+                    msmd = smd
+                    to_attack = squad
 
-            print(f'        -- Chose {to_attack.troop.name}')
+            print(f'    -- Chose {to_attack.troop.name}')
 
         uh = to_attack.unit_health()
         kills = int(md / uh)
@@ -247,6 +280,8 @@ def fight_all(my_army, enemy):
     Enemy goes first.
     """
 
+    round = 0
+
     # Enemy goes first
     army_1 = enemy
     army_2 = my_army
@@ -257,6 +292,15 @@ def fight_all(my_army, enemy):
 
     while my_army.alive_squads() > 0 and enemy.alive_squads() > 0:
         if army_1_allowed:
+            round += 1
+            print('\n\n' + '=' * 70)
+            print('n=' * 30, f'Round {round:2}', '=' * 30)
+            print('')
+            print('=== Attacker', '=' * 57)
+            print('\n'.join(army_1.report()), '\n')
+            print('=== Versus  ', '=' * 57)
+            print('\n'.join(army_2.report()), '\n')
+
             attacker, attacked, damage, kills = fight_round(army_1, army_2, army_1_allowed)
         elif army_2_allowed:
             print('Switch and continue')
@@ -264,7 +308,7 @@ def fight_all(my_army, enemy):
             army_1_allowed, army_2_allowed = army_2_allowed, army_1_allowed
             continue
         else:
-            # Refresh armies
+            print(f'Refreshing armies')
             army_1_allowed = set(x.troop.name for x in army_1.squads if x.qty > 0)
             army_2_allowed = set(x.troop.name for x in army_2.squads if x.qty > 0)
             continue
